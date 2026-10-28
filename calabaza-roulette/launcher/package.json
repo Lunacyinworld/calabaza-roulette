@@ -1,0 +1,21 @@
+{
+  "name": "calabaza-roulette-launcher",
+  "version": "1.0.0",
+  "description": "Launcher de escritorio para Calabaza Roulette",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": { "electron": "^33.0.0", "electron-builder": "^25.0.0" },
+  "build": {
+    "appId": "com.tuusuario.calabazaroulette",
+    "productName": "Calabaza Roulette",
+    "files": ["main.js", "offline.html"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  }
+}

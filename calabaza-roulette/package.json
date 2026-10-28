@@ -1,0 +1,8 @@
+{
+  "name": "calabaza-roulette",
+  "version": "1.0.0",
+  "description": "Ruleta rusa de Halloween para 2 jugadores online",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}

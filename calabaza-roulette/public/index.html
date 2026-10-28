@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calabaza Roulette</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#14101a">
+<link rel="icon" href="/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<style>
+:root{--ash:#14101a;--wood:#2a1d26;--pumpkin:#e8731a;--bone:#e9dfc8;--blood:#a3243a;--ghost:#7fb08a;--dim:#8d8294}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:radial-gradient(ellipse at 50% 30%,#2a1a30 0%,var(--ash) 70%);color:var(--bone);font-family:'IM Fell English',Georgia,serif;font-size:18px;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 120px,rgba(233,223,200,.03) 120px 240px);animation:fog 40s linear infinite}
+@keyframes fog{to{background-position:480px 0}}
+h1,h2{font-family:'IM Fell English SC',serif;font-weight:400;margin:0}
+#app{position:relative;max-width:760px;margin:0 auto;padding:16px;min-height:100%}
+.screen{display:none}.screen.on{display:block}
+button{font:inherit;color:var(--bone);background:var(--wood);border:1px solid var(--pumpkin);padding:10px 18px;border-radius:3px;cursor:pointer}
+button:hover:not(:disabled){background:var(--pumpkin);color:var(--ash)}
+button:disabled{opacity:.35;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ghost);outline-offset:2px}
+input{font:inherit;background:var(--ash);color:var(--bone);border:1px solid var(--dim);padding:10px;border-radius:3px;width:100%}
+#lobby{text-align:center;padding-top:8vh}
+#lobby h1{font-size:clamp(40px,10vw,76px);color:var(--pumpkin);text-shadow:0 0 28px rgba(232,115,26,.45);line-height:1}
+#lobby p{color:var(--dim);max-width:46ch;margin:14px auto 28px}
+.box{max-width:340px;margin:0 auto;display:grid;gap:10px}
+.row{display:flex;gap:8px}.row input{text-transform:uppercase}
+#err{color:var(--blood);min-height:1.4em;margin-top:10px}
+#code{font-size:44px;letter-spacing:.3em;color:var(--pumpkin);margin:8px 0}
+.top{display:flex;justify-content:space-between;color:var(--dim);font-size:15px}
+.seat{padding:10px 14px;border:1px solid transparent;border-radius:4px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.seat.turn{border-color:var(--pumpkin);box-shadow:0 0 18px rgba(232,115,26,.25)}
+.seat .who{font-size:20px}
+.candles{font-size:26px;letter-spacing:2px;white-space:nowrap}
+.candles .off{filter:grayscale(1) brightness(.4)}
+.items{display:flex;flex-wrap:wrap;gap:6px;min-height:46px}
+.item{padding:6px 10px;font-size:24px;line-height:1}
+.item.foe{border:1px solid var(--dim);border-radius:3px;padding:6px 10px;font-size:24px;opacity:.85}
+.table{margin:12px 0;padding:18px;background:linear-gradient(var(--wood),#1c141b);border:1px solid #3d2b38;border-radius:6px;text-align:center}
+#cannon{font-size:64px;transition:transform .15s}
+#cannon.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translate(-8px,2px) rotate(-6deg)}75%{transform:translate(8px,-2px) rotate(6deg)}}
+#chamber{margin:8px 0;min-height:30px;font-size:15px;color:var(--dim)}
+.shell{display:inline-block;width:14px;height:22px;margin:0 2px;border-radius:3px;background:var(--dim);vertical-align:middle}
+#status{min-height:1.5em;font-size:20px;margin:6px 0 12px}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.actions .foe{border-color:var(--blood)}
+.actions .foe:hover:not(:disabled){background:var(--blood);color:var(--bone)}
+#log{margin-top:14px;max-height:150px;overflow-y:auto;font-size:15px;color:var(--dim);border-top:1px solid #3d2b38;padding-top:8px}
+#log div:last-child{color:var(--bone)}
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0}
+#flash.live{background:var(--blood);animation:fl .5s}
+#flash.blank{background:var(--ghost);animation:fl .35s}
+@keyframes fl{0%{opacity:.5}100%{opacity:0}}
+#over{text-align:center;padding-top:10vh}
+#over h2{font-size:48px;color:var(--pumpkin)}
+@media(prefers-reduced-motion:reduce){body::before,#cannon.shake,#flash{animation:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="lobby" class="screen on">
+    <h1>Calabaza Roulette</h1>
+    <p>Dos almas, un cañón de calabaza y cartuchos que pueden ser maldiciones o caramelos. Quien se quede sin velas, pierde la ronda. Gana quien se lleve dos.</p>
+    <div class="box">
+      <input id="name" maxlength="16" placeholder="Tu nombre" autocomplete="off">
+      <button id="create">Crear sala</button>
+      <div class="row"><input id="joinCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off"><button id="join">Unirme</button></div>
+      <div id="err" role="alert"></div>
+    </div>
+  </section>
+
+  <section id="wait" class="screen" style="text-align:center;padding-top:12vh">
+    <h2>Esperando a tu rival</h2>
+    <div id="code"></div>
+    <p style="color:var(--dim)">Comparte este código para que se una.</p>
+  </section>
+
+  <section id="game" class="screen">
+    <div class="top"><span id="round"></span><span id="score"></span></div>
+    <div class="seat" id="foeSeat"><span class="who" id="foeName"></span><span class="candles" id="foeHp"></span></div>
+    <div class="items" id="foeItems"></div>
+    <div class="table">
+      <div id="cannon">🎃</div>
+      <div id="chamber"></div>
+      <div id="status"></div>
+      <div class="actions">
+        <button id="shootSelf">Dispararme</button>
+        <button id="shootFoe" class="foe">Disparar al rival</button>
+      </div>
+    </div>
+    <div class="items" id="myItems"></div>
+    <div class="seat" id="mySeat"><span class="who" id="myName"></span><span class="candles" id="myHp"></span></div>
+    <div id="log"></div>
+  </section>
+
+  <section id="over" class="screen">
+    <h2 id="overTitle"></h2>
+    <p id="overSub" style="color:var(--dim)"></p>
+    <button id="rematch">Otra partida</button>
+  </section>
+</div>
+<div id="flash"></div>
+
+<script>
+const ITEM = {
+  crystal:{i:'🔮',n:'Bola de cristal',d:'Revela el cartucho actual (solo tú lo ves)'},
+  potion:{i:'🧪',n:'Poción',d:'Recuperas 1 vela'},
+  axe:{i:'🪓',n:'Hacha',d:'El próximo disparo hace doble daño'},
+  bat:{i:'🦇',n:'Murciélago',d:'Espanta el cartucho actual sin dispararlo'},
+  web:{i:'🕸️',n:'Telaraña',d:'El rival pierde su próximo turno'}
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let ws, S = null;
+
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
+function send(o){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+
+function connect(first){
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  ws.onopen = () => send(first);
+  ws.onclose = () => { if (S && S.phase !== 'over') $('err').textContent = ''; };
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data);
+    if (m.t === 'error'){ $('err').textContent = m.msg; ws.close(); ws = null; }
+    if (m.t === 'lobby'){ $('code').textContent = m.code; show('wait'); }
+    if (m.t === 'left'){ alert('Tu rival se desvaneció entre la niebla.'); location.reload(); }
+    if (m.t === 'state'){ S = m; render(); }
+  };
+}
+
+function nm(){ return $('name').value.trim() || 'Alma errante'; }
+$('create').onclick = () => { $('err').textContent = ''; connect({t:'create', name:nm()}); };
+$('join').onclick = () => {
+  const c = $('joinCode').value.trim().toUpperCase();
+  if (c.length !== 4){ $('err').textContent = 'El código tiene 4 letras.'; return; }
+  $('err').textContent = ''; connect({t:'join', code:c, name:nm()});
+};
+$('shootSelf').onclick = () => send({t:'shoot', target:'self'});
+$('shootFoe').onclick = () => send({t:'shoot', target:'foe'});
+$('rematch').onclick = () => send({t:'rematch'});
+
+const candles = (hp, max) => Array.from({length:max}, (_, i) => `<span class="${i < hp ? '' : 'off'}">🕯️</span>`).join('');
+
+function render(){
+  const s = S, me = s.me, o = 1 - me;
+  if (s.phase === 'over'){
+    show('over');
+    const won = s.winner === me;
+    $('overTitle').textContent = won ? 'Has sobrevivido' : 'Tu vela se apagó';
+    $('overSub').textContent = won ? `${s.names[o]} ya no cuenta caramelos.` : `${s.names[s.winner]} se lleva la partida.`;
+    sfx(won ? 'win' : 'lose');
+    return;
+  }
+  show('game');
+  const mine = s.turn === me && s.phase === 'play';
+  $('round').textContent = `Ronda ${Math.min(s.round, 3)}`;
+  $('score').textContent = `${s.names[me]} ${s.wins[me]} – ${s.wins[o]} ${s.names[o]}`;
+  $('foeName').textContent = s.names[o]; $('myName').textContent = s.names[me];
+  $('foeHp').innerHTML = candles(s.hp[o], s.max); $('myHp').innerHTML = candles(s.hp[me], s.max);
+  $('foeSeat').classList.toggle('turn', s.turn === o && s.phase === 'play');
+  $('mySeat').classList.toggle('turn', mine);
+  const flags = p => (s.cuffed[p] ? ' 🕸️' : '') + (s.sawed && s.turn === p ? ' 🪓' : '');
+  $('foeName').textContent += flags(o); $('myName').textContent += flags(me);
+
+  $('foeItems').innerHTML = s.items[o].map(k => `<span class="item foe" title="${esc(ITEM[k].n)}">${ITEM[k].i}</span>`).join('');
+  $('myItems').innerHTML = '';
+  s.items[me].forEach((k, idx) => {
+    const b = document.createElement('button');
+    b.className = 'item'; b.textContent = ITEM[k].i; b.title = `${ITEM[k].n}: ${ITEM[k].d}`; b.setAttribute('aria-label', b.title);
+    b.disabled = !mine || (k === 'axe' && s.sawed) || (k === 'web' && s.cuffed[o]) || (k === 'potion' && s.hp[me] >= s.max);
+    b.onclick = () => send({t:'use', idx});
+    $('myItems').appendChild(b);
+  });
+
+  const shells = Array.from({length:s.left}, () => '<span class="shell"></span>').join('');
+  $('chamber').innerHTML = `Cargador: ${s.initLive} maldiciones, ${s.initBlank} caramelos · quedan ${s.left} ${shells}` +
+    (s.peek !== null ? `<br>🔮 El cartucho actual es <b style="color:${s.peek ? 'var(--blood)' : 'var(--ghost)'}">${s.peek ? 'una MALDICIÓN' : 'un caramelo'}</b>` : '');
+  $('status').textContent = s.phase === 'between' ? 'La siguiente ronda se prepara...' : mine ? 'Tu turno' : `Turno de ${s.names[o]}`;
+  $('shootSelf').disabled = $('shootFoe').disabled = !mine;
+  $('log').innerHTML = s.log.map(l => `<div>${esc(l)}</div>`).join('');
+  $('log').scrollTop = 1e6;
+
+  if (s.event){
+    if (s.event.type === 'item') sfx('item');
+    else { flash(s.event.type); $('cannon').classList.remove('shake'); void $('cannon').offsetWidth; $('cannon').classList.add('shake'); sfx(s.event.type); }
+  }
+}
+
+function flash(t){ const f = $('flash'); f.className = ''; void f.offsetWidth; f.className = t; }
+
+let ac;
+function sfx(type){
+  try{
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ac.currentTime;
+    const tone = (f, d, w, v, at) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = w; o.frequency.setValueAtTime(f, t + at); o.frequency.exponentialRampToValueAtTime(Math.max(30, f / 3), t + at + d); g.gain.setValueAtTime(v, t + at); g.gain.exponentialRampToValueAtTime(.001, t + at + d); o.connect(g).connect(ac.destination); o.start(t + at); o.stop(t + at + d); };
+    if (type === 'live') { tone(160, .5, 'sawtooth', .35, 0); tone(60, .6, 'square', .3, 0); }
+    else if (type === 'blank') tone(900, .08, 'triangle', .2, 0);
+    else if (type === 'item') { tone(520, .15, 'sine', .2, 0); tone(780, .2, 'sine', .2, .1); }
+    else if (type === 'win') [392, 494, 587].forEach((f, i) => tone(f, .4, 'sine', .2, i * .15));
+    else if (type === 'lose') [300, 240, 180].forEach((f, i) => tone(f, .5, 'sawtooth', .15, i * .2));
+  }catch(e){}
+}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+</script>
+</body>
+</html>
